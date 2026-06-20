@@ -36,6 +36,7 @@ publish:
   provider: github
   owner: andreaiaccino
   repo: scribio
+  releaseType: release   # pubblica direttamente (non draft) → visibile all'auto-update
 
 win:
   icon: resources/icon.ico

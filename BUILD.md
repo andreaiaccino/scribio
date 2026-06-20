@@ -88,3 +88,12 @@ Per pubblicare una nuova versione:
 
 > App non firmata: al primo install c'è il warning SmartScreen; l'auto-update funziona comunque
 > (electron-updater verifica via sha512). Per distribuzione larga valutare un certificato OV/EV.
+
+> Fallback upload: se `--publish` non carica tutti gli asset (l'exe grande a volte non completa),
+> caricarli a mano e pubblicare la release:
+> ```powershell
+> gh release upload v<ver> dist\Scribio-Setup-<ver>.exe dist\latest.yml --clobber
+> gh release edit v<ver> --draft=false
+> ```
+> Per l'auto-update servono i 3 asset: `latest.yml`, `Scribio-Setup-<ver>.exe`, `.exe.blockmap`,
+> e la release NON deve essere draft.
