@@ -1,0 +1,130 @@
+/* Design tokens estratti dal mockup Scribio.dc.html (pixel-perfect). */
+:root {
+  /* superfici */
+  --bg-0: #0a0a0a; /* canvas finestra / main */
+  --bg-1: #0c0c0c; /* sidebar / topbar */
+  --bg-2: #111111; /* card action items */
+  --bg-3: #141414; /* input ask */
+  --bg-4: #161616; /* campi, search, segmented */
+  --bg-5: #1c1c1c; /* bottoni secondari */
+
+  /* accento */
+  --lime: #cafe0e;
+  --lime-06: rgba(202, 254, 14, 0.06);
+  --lime-05: rgba(202, 254, 14, 0.05);
+  --lime-04: rgba(202, 254, 14, 0.04);
+  --lime-14: rgba(202, 254, 14, 0.14);
+  --lime-40: rgba(202, 254, 14, 0.4);
+
+  /* testo */
+  --tx-bright: #f2f2f2;
+  --tx-1: #ededed;
+  --tx-2: #e2e2e2;
+  --tx-3: #d4d4d4;
+  --tx-4: #cfcfcf;
+  --tx-5: #c0c0c0;
+  --tx-6: #b8b8b8;
+  --tx-7: #9a9a9a;
+  --tx-8: #8a8a8a;
+  --tx-9: #7a7a7a;
+  --tx-10: #6a6a6a;
+  --tx-11: #5a5a5a;
+  --tx-12: #4a4a4a;
+
+  /* bordi hairline */
+  --hair: rgba(255, 255, 255, 0.06);
+  --hair-07: rgba(255, 255, 255, 0.07);
+  --hair-08: rgba(255, 255, 255, 0.08);
+  --hair-09: rgba(255, 255, 255, 0.09);
+  --hair-10: rgba(255, 255, 255, 0.1);
+  --hair-16: rgba(255, 255, 255, 0.16);
+  --hair-22: rgba(255, 255, 255, 0.22);
+
+  --font-sans: 'Inter Variable', 'Inter', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg-0);
+  color: var(--tx-3);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+input,
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* animazioni dal mockup */
+@keyframes scribioPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(202, 254, 14, 0.5);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.92);
+    box-shadow: 0 0 0 5px rgba(202, 254, 14, 0);
+  }
+}
+@keyframes scribioBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.sc-pulse {
+  animation: scribioPulse 1.4s ease-in-out infinite;
+}
+.sc-blink {
+  animation: scribioBlink 1.1s steps(1) infinite;
+}
+
+/* scrollbar custom (mockup) */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* util */
+.mono {
+  font-family: var(--font-mono);
+}
+.scroll-y {
+  overflow-y: auto;
+  min-height: 0;
+}

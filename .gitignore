@@ -1,0 +1,28 @@
+node_modules/
+out/
+dist/
+*.log
+*.wsb
+
+# sidecar python
+sidecar/.venv/
+sidecar/__pycache__/
+sidecar/build/
+sidecar/dist/
+sidecar/whisper-bin/
+*.pyc
+
+# local
+.DS_Store
+*.db
+*.db-wal
+*.db-shm
+
+# secrets / env (Supabase PAT, ecc.) — MAI committare
+.env
+.env.*
+!.env.example
+
+# supabase CLI (stato locale del link)
+supabase/.temp/
+supabase/.branches/

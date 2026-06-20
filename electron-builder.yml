@@ -1,0 +1,50 @@
+appId: com.scribio.app
+productName: Scribio
+copyright: © Andrea Iaccino
+
+directories:
+  output: dist
+  buildResources: resources
+
+# Bundle solo l'output buildato + il package.json; le deps di produzione
+# (better-sqlite3, openai) sono incluse automaticamente da electron-builder.
+files:
+  - out/**
+  - package.json
+  - '!**/*.map'
+
+# Native module: estrai i .node dall'asar (better-sqlite3).
+asar: true
+asarUnpack:
+  - '**/*.node'
+
+# Sidecar PyInstaller (onedir) → resources/sidecar a runtime.
+# Eseguire `npm run build:sidecar` PRIMA del packaging.
+extraResources:
+  - from: sidecar/dist/scribio-sidecar
+    to: sidecar
+  # whisper.cpp (build Vulkan): whisper-server.exe + DLL → resources/whisper
+  - from: sidecar/whisper-bin
+    to: whisper
+  # icona per la finestra a runtime (la taskbar usa l'icona dell'exe)
+  - from: resources/icon.png
+    to: icon.png
+
+# Auto-update: gli asset di Release (installer + latest.yml + blockmap) vengono
+# pubblicati su GitHub Releases con `--publish`. Repo pubblico → download senza token.
+publish:
+  provider: github
+  owner: andreaiaccino
+  repo: scribio
+
+win:
+  icon: resources/icon.ico
+  target:
+    - nsis
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false

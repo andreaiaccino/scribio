@@ -1,0 +1,4 @@
+PyAudioWPatch==0.2.12.8
+numpy
+# STT ora via whisper.cpp (whisper-server, Vulkan) — niente faster-whisper/ctranslate2.
+# HTTP verso il server: urllib (stdlib).
