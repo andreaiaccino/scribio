@@ -76,6 +76,8 @@ const api: ScribioApi = {
     rename: (id: string, title: string): Promise<void> =>
       ipcRenderer.invoke('meetings:rename', id, title),
     remove: (id: string): Promise<void> => ipcRenderer.invoke('meetings:remove', id),
+    export: (id: string, kind: 'transcript' | 'notes'): Promise<{ saved: boolean }> =>
+      ipcRenderer.invoke('meetings:export', id, kind),
     onUpdated: (cb: (meetingId: string) => void): Unsubscribe => {
       const listener = (_e: unknown, id: string): void => cb(id)
       ipcRenderer.on('meetings:updated', listener)

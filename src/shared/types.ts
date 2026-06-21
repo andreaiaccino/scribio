@@ -187,6 +187,7 @@ export interface ScribioApi {
     enhance(id: string, templateId?: string): Promise<void>
     rename(id: string, title: string): Promise<void>
     remove(id: string): Promise<void>
+    export(id: string, kind: 'transcript' | 'notes'): Promise<{ saved: boolean }>
     onUpdated(cb: (meetingId: string) => void): Unsubscribe
   }
   search: {

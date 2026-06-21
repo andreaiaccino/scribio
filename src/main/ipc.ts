@@ -30,6 +30,7 @@ import { signIn, signUp, signOut, currentUser } from './cloud/auth'
 import { syncMeetingSafe, deleteMeetingCloudSafe, pushAll, pushMeeting } from './cloud/sync'
 import { createToken, listTokens, revokeToken, MCP_URL } from './cloud/remote'
 import { restartToUpdate } from './updater'
+import { exportMeeting, type ExportKind } from './export'
 import type { AuthUser, RemoteToken } from '@shared/types'
 
 function broadcast(channel: string, payload: unknown): void {
@@ -170,6 +171,11 @@ export function registerIpc(): void {
     broadcast('meetings:updated', id)
     deleteMeetingCloudSafe(id)
   })
+  ipcMain.handle(
+    'meetings:export',
+    async (e, id: string, kind: ExportKind): Promise<{ saved: boolean }> =>
+      exportMeeting(BrowserWindow.fromWebContents(e.sender), id, kind)
+  )
 
   // --- search ---
   ipcMain.handle('search:query', async (_e, q: string): Promise<SearchResult[]> =>

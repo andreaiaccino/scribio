@@ -226,6 +226,85 @@ function AskBar({ meetingId }: { meetingId: string }) {
   )
 }
 
+function ExportMenu({ meetingId }: { meetingId: string }) {
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const run = async (kind: 'transcript' | 'notes') => {
+    setOpen(false)
+    setBusy(true)
+    try {
+      await window.scribio.meetings.export(meetingId, kind)
+    } catch {
+      /* dialog annullato o errore: silenzioso */
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        disabled={busy}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 7,
+          height: 32,
+          padding: '0 12px',
+          background: 'var(--bg-4)',
+          border: '1px solid var(--hair-10)',
+          borderRadius: 8,
+          cursor: busy ? 'default' : 'pointer',
+          fontSize: 13,
+          color: 'var(--tx-3)',
+          opacity: busy ? 0.6 : 1
+        }}
+      >
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+          <path d="M8 2v8M4.5 7L8 10.5L11.5 7M3 13h10" stroke="#b8b8b8" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {busy ? 'Esporto…' : 'Esporta'}
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          <div
+            style={{
+              position: 'absolute',
+              top: 38,
+              left: 0,
+              zIndex: 41,
+              minWidth: 200,
+              background: 'var(--bg-3)',
+              border: '1px solid var(--hair-10)',
+              borderRadius: 10,
+              padding: 5,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.45)'
+            }}
+          >
+            {[
+              { kind: 'transcript' as const, label: 'Transcript (.txt)' },
+              { kind: 'notes' as const, label: 'Note complete (.md)' }
+            ].map((it) => (
+              <div
+                key={it.kind}
+                onClick={() => void run(it.kind)}
+                style={{ padding: '9px 11px', borderRadius: 7, cursor: 'pointer', fontSize: 13, color: 'var(--tx-3)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                {it.label}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function MeetingMain({ detail, onReload }: { detail: MeetingDetail; onReload: () => void }) {
   const [tab, setTab] = useState<Tab>(detail.enhancedNotes ? 'enhanced' : 'mine')
   const [transcriptOpen, setTranscriptOpen] = useState(!detail.enhancedNotes)
@@ -301,6 +380,10 @@ function MeetingMain({ detail, onReload }: { detail: MeetingDetail; onReload: ()
           <div className="mono" style={{ fontSize: 12, color: 'var(--tx-8)', marginTop: 11 }}>
             {longDate(detail.startedAt)} · {hhmm(detail.startedAt)}
             {detail.endedAt ? `–${hhmm(detail.endedAt)}` : ''} · {durationLabel(detail.startedAt, detail.endedAt)}
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <ExportMenu meetingId={detail.id} />
           </div>
 
           {(detail.status === 'transcribing' || detail.status === 'enhancing') && (
