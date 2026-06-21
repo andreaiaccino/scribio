@@ -3,12 +3,13 @@ import { createInterface, type Interface } from 'node:readline'
 import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { app } from 'electron'
-import type { AudioDevice, DeviceList, SessionStatus, TranscriptSegment } from '@shared/types'
+import type { AudioDevice, AudioLevel, DeviceList, SessionStatus, TranscriptSegment } from '@shared/types'
 
 // Eventi dal sidecar (BUILD-SPEC §6.1).
 interface ReadyEvt { event: 'ready' }
 interface DevicesEvt { event: 'devices'; mic: AudioDevice[]; loopback: AudioDevice[] }
 interface StatusEvt { event: 'status'; session_id: string; state: 'capturing' | 'finalizing' }
+interface LevelEvt { event: 'level'; speaker: 'me' | 'others'; rms: number }
 interface SegmentEvt {
   event: 'segment'
   session_id: string
@@ -22,10 +23,19 @@ interface FinalSeg { speaker: 'me' | 'others'; ts_start: number; ts_end: number;
 interface FinalEvt { event: 'final'; session_id: string; segments: FinalSeg[] }
 interface StoppedEvt { event: 'stopped'; session_id: string }
 interface ErrorEvt { event: 'error'; message: string; fatal: boolean }
-type SidecarEvent = ReadyEvt | DevicesEvt | StatusEvt | SegmentEvt | FinalEvt | StoppedEvt | ErrorEvt
+type SidecarEvent =
+  | ReadyEvt
+  | DevicesEvt
+  | StatusEvt
+  | LevelEvt
+  | SegmentEvt
+  | FinalEvt
+  | StoppedEvt
+  | ErrorEvt
 
 type SegmentCb = (s: TranscriptSegment) => void
 type StatusCb = (s: SessionStatus) => void
+type LevelCb = (l: AudioLevel) => void
 type FinalCb = (meetingId: string, segments: TranscriptSegment[]) => void
 type ErrorCb = (message: string, fatal: boolean) => void
 
@@ -83,11 +93,13 @@ export class SidecarManager {
 
   private segmentCbs = new Set<SegmentCb>()
   private statusCbs = new Set<StatusCb>()
+  private levelCbs = new Set<LevelCb>()
   private finalCbs = new Set<FinalCb>()
   private errorCbs = new Set<ErrorCb>()
 
   onSegment(cb: SegmentCb): void { this.segmentCbs.add(cb) }
   onStatus(cb: StatusCb): void { this.statusCbs.add(cb) }
+  onLevel(cb: LevelCb): void { this.levelCbs.add(cb) }
   onFinal(cb: FinalCb): void { this.finalCbs.add(cb) }
   onError(cb: ErrorCb): void { this.errorCbs.add(cb) }
 
@@ -154,6 +166,9 @@ export class SidecarManager {
       case 'status':
         this.statusCbs.forEach((cb) => cb({ meetingId: evt.session_id, state: evt.state }))
         break
+      case 'level':
+        this.levelCbs.forEach((cb) => cb({ speaker: evt.speaker, rms: evt.rms }))
+        break
       case 'segment':
         this.segmentCbs.forEach((cb) =>
           cb({
@@ -205,6 +220,21 @@ export class SidecarManager {
     const p = new Promise<DeviceList>((resolve) => this.devicesWaiters.push(resolve))
     this.send({ cmd: 'list_devices' })
     return p
+  }
+
+  /** Avvia il probe del VU-meter (onboarding): apre mic+loopback e emette `level`. */
+  async probe(opts: { micIndex?: number | null; loopbackIndex?: number | null }): Promise<void> {
+    await this.ensureStarted()
+    this.send({
+      cmd: 'probe',
+      mic_index: opts.micIndex ?? null,
+      loopback_index: opts.loopbackIndex ?? null
+    })
+  }
+
+  probeStop(): void {
+    if (!this.proc) return
+    this.send({ cmd: 'probe_stop' })
   }
 
   async start(opts: {

@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import type {
   DeviceList,
   MeetingDetail,
@@ -24,7 +24,7 @@ import { getDb } from './db/db'
 import { hasOpenAIKey, setOpenAIKey } from './secrets'
 import { loadSettings, saveSettings } from './store'
 import { getSidecar } from './sidecar'
-import { enhanceMeeting } from './llm/enhance'
+import { enhanceMeeting, getEnhanceError } from './llm/enhance'
 import { askMeeting, askGlobal } from './llm/ask'
 import { signIn, signUp, signOut, currentUser } from './cloud/auth'
 import { syncMeetingSafe, deleteMeetingCloudSafe, pushAll, pushMeeting } from './cloud/sync'
@@ -51,6 +51,7 @@ export function registerIpc(): void {
     broadcast('session:segment', s)
   })
   sidecar.onStatus((s) => broadcast('session:status', s))
+  sidecar.onLevel((l) => broadcast('audio:level', l))
   sidecar.onError((message, fatal) => broadcast('session:error', { message, fatal }))
 
   // transcript FINALE (pass di qualità): è l'autoritativo → persiste e rimpiazza.
@@ -108,6 +109,14 @@ export function registerIpc(): void {
   // --- devices (sidecar) ---
   ipcMain.handle('devices:list', async (): Promise<DeviceList> => sidecar.listDevices())
 
+  // --- audio probe (VU-meter onboarding) ---
+  ipcMain.handle(
+    'audio:probeStart',
+    async (_e, opts: { micIndex?: number | null; loopbackIndex?: number | null }): Promise<void> =>
+      sidecar.probe(opts ?? {})
+  )
+  ipcMain.handle('audio:probeStop', async (): Promise<void> => sidecar.probeStop())
+
   // --- session ---
   ipcMain.handle('session:start', async (_e, opts: StartSessionOptions) => {
     const settings = loadSettings()
@@ -145,9 +154,14 @@ export function registerIpc(): void {
   ipcMain.handle('meetings:list', async (_e, filter?: { q?: string }): Promise<MeetingListItem[]> =>
     listMeetings(filter)
   )
-  ipcMain.handle('meetings:get', async (_e, id: string): Promise<MeetingDetail | null> =>
-    getMeeting(id)
-  )
+  ipcMain.handle('meetings:get', async (_e, id: string): Promise<MeetingDetail | null> => {
+    const detail = getMeeting(id)
+    if (detail && detail.status === 'error') {
+      const err = getEnhanceError(id)
+      if (err) detail.enhanceError = err
+    }
+    return detail
+  })
   ipcMain.handle('meetings:saveRawNotes', async (_e, id: string, md: string): Promise<void> => {
     saveRawNotes(id, md)
     syncMeetingSafe(id)
@@ -221,13 +235,14 @@ export function registerIpc(): void {
   // --- settings ---
   ipcMain.handle('settings:get', async (): Promise<Settings> => {
     const s = loadSettings()
-    return { ...s, hasOpenAIKey: hasOpenAIKey() }
+    return { ...s, hasOpenAIKey: hasOpenAIKey(), version: app.getVersion() }
   })
   ipcMain.handle('settings:setOpenAIKey', async (_e, key: string): Promise<void> => {
     setOpenAIKey(key)
   })
   ipcMain.handle('settings:set', async (_e, partial: Partial<Settings>): Promise<void> => {
-    const { hasOpenAIKey: _omit, ...rest } = partial
+    // hasOpenAIKey e version sono calcolati, non persistiti
+    const { hasOpenAIKey: _omitKey, version: _omitVer, ...rest } = partial
     saveSettings(rest)
   })
 }

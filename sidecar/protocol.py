@@ -34,6 +34,12 @@ def emit_status(session_id: str, state: str) -> None:
     _emit({"event": "status", "session_id": session_id, "state": state})
 
 
+def emit_level(speaker: str, rms: float) -> None:
+    # livello audio per il VU-meter dell'onboarding (speaker: me | others).
+    # Solo RMS: nessun audio lascia il sidecar.
+    _emit({"event": "level", "speaker": speaker, "rms": round(rms, 4)})
+
+
 def emit_segment(
     session_id: str, speaker: str, ts_start: float, ts_end: float, text: str, seq: int
 ) -> None:

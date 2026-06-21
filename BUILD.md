@@ -92,8 +92,14 @@ Per pubblicare una nuova versione:
 > Fallback upload: se `--publish` non carica tutti gli asset (l'exe grande a volte non completa),
 > caricarli a mano e pubblicare la release:
 > ```powershell
+> npm run verify:dist   # controlla che dist/ combaci con package.json PRIMA dell'upload
 > gh release upload v<ver> dist\Scribio-Setup-<ver>.exe dist\latest.yml --clobber
 > gh release edit v<ver> --draft=false
 > ```
 > Per l'auto-update servono i 3 asset: `latest.yml`, `Scribio-Setup-<ver>.exe`, `.exe.blockmap`,
 > e la release NON deve essere draft.
+>
+> **`npm run verify:dist`** (`scripts/verify-dist.mjs`) è uno smoke check: verifica che l'exe esista
+> e non sia vuoto, che ci sia il `.blockmap`, e soprattutto che `dist/latest.yml` abbia la stessa
+> `version` di `package.json`. Esattamente il bug della 0.1.2 (latest.yml rimasto a 0.1.1 per un
+> publish a metà). `npm run release` lo esegue in coda; eseguilo a mano dopo un publish parziale.

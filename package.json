@@ -1,6 +1,6 @@
 {
   "name": "scribio",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Scribio — AI notepad self-hosted per riunioni (MVP desktop Windows)",
   "author": "Andrea Iaccino",
   "license": "UNLICENSED",
@@ -18,7 +18,8 @@
     "build:sidecar": "cd sidecar && .venv\\Scripts\\python -m PyInstaller --noconfirm build.spec",
     "package": "npm run build && npm run build:sidecar && electron-builder --win --dir",
     "dist": "npm run build && npm run build:sidecar && electron-builder --win",
-    "release": "npm run build && npm run build:sidecar && electron-builder --win --publish always"
+    "verify:dist": "node scripts/verify-dist.mjs",
+    "release": "npm run build && npm run build:sidecar && electron-builder --win --publish always && npm run verify:dist"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

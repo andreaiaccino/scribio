@@ -160,6 +160,9 @@ class Sidecar:
         self._session: Optional[Session] = None
         self._engine: Optional[WhisperEngine] = None
         self._engine_lock = threading.Lock()  # protegge la creazione dell'istanza
+        # probe del VU-meter (onboarding): stream aperti solo per misurare il livello.
+        self._probe_stop: Optional[threading.Event] = None
+        self._probes: list[capture.LevelProbe] = []
 
     def _engine_obj(self, language: str) -> WhisperEngine:
         """Ritorna l'unica istanza engine (creata se assente). NON la avvia."""
@@ -195,12 +198,19 @@ class Sidecar:
         if cmd == "stop":
             self._stop()
             return
+        if cmd == "probe":
+            self._probe(msg)
+            return
+        if cmd == "probe_stop":
+            self._probe_stop_all()
+            return
         proto.log(f"comando sconosciuto: {cmd!r}")
 
     def _start(self, msg: dict[str, Any]) -> None:
         if self._session is not None:
             proto.emit_error("Sessione già attiva.", fatal=False)
             return
+        self._probe_stop_all()  # libera i device dal probe prima di catturare
         session_id = str(msg.get("session_id", ""))
         language = str(msg.get("language", "it"))
         try:
@@ -241,6 +251,51 @@ class Sidecar:
         self._session = None
         sess.stop()
 
+    def _probe(self, msg: dict[str, Any]) -> None:
+        if self._session is not None:
+            proto.emit_error("Sessione attiva: impossibile avviare il probe.", fatal=False)
+            return
+        self._probe_stop_all()  # idempotente: chiude eventuali probe precedenti
+        mic_index = msg.get("mic_index")
+        loop_index = msg.get("loopback_index")
+        def_mic = def_loop = None
+        if mic_index is None or loop_index is None:
+            try:
+                def_mic, def_loop = capture.default_devices(self._pa)
+            except Exception as exc:
+                proto.emit_error(f"Device di default non disponibili: {exc}", fatal=False)
+        stop_evt = threading.Event()
+        self._probe_stop = stop_evt
+        # un probe per stream: errore isolato (es. loopback assente) → niente crash.
+        for speaker, index, dflt, fb in (
+            ("me", mic_index, def_mic, 1),
+            ("others", loop_index, def_loop, 2),
+        ):
+            try:
+                dev = (
+                    capture.device_by_index(self._pa, int(index), fb)
+                    if index is not None
+                    else dflt
+                )
+                if dev is None:
+                    raise RuntimeError("device non selezionato e nessun default")
+                probe = capture.LevelProbe(self._pa, dev, speaker, self._emit_level, stop_evt)
+                probe.start()
+                self._probes.append(probe)
+            except Exception as exc:
+                proto.emit_error(f"Probe '{speaker}' fallito: {exc}", fatal=False)
+
+    def _emit_level(self, speaker: str, rms: float) -> None:
+        proto.emit_level(speaker, rms)
+
+    def _probe_stop_all(self) -> None:
+        if self._probe_stop is not None:
+            self._probe_stop.set()
+        for p in self._probes:
+            p.join(timeout=2.0)
+        self._probes = []
+        self._probe_stop = None
+
     def run(self) -> None:
         proto.emit_ready()
         # pre-carica il modello subito: quando l'utente preme Registra il server è
@@ -260,6 +315,7 @@ class Sidecar:
             except Exception as exc:
                 proto.emit_error(f"Errore interno: {exc}", fatal=False)
         # stdin chiuso -> shutdown pulito
+        self._probe_stop_all()
         self._stop()
         if self._engine is not None:
             self._engine.stop()

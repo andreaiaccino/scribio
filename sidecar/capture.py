@@ -125,6 +125,54 @@ def to_mono_16k(raw: bytes, src_rate: int, src_channels: int) -> np.ndarray:
     return audio
 
 
+class LevelProbe(threading.Thread):
+    """Apre uno stream e misura il livello (RMS) ~10 volte/s, senza trascrivere
+    né accumulare audio. Usato dall'onboarding per il VU-meter: la callback
+    riceve (speaker, rms). Nessun audio lascia il processo."""
+
+    WINDOW_SECONDS = 0.1  # finestra di misura → ~10 emissioni/s
+
+    def __init__(
+        self,
+        pa: pyaudio.PyAudio,
+        dev: DeviceInfo,
+        speaker: str,
+        on_level,  # callable(speaker: str, rms: float)
+        stop_evt: threading.Event,
+    ):
+        super().__init__(daemon=True, name=f"probe-{speaker}")
+        self._pa = pa
+        self._dev = dev
+        self._speaker = speaker
+        self._on_level = on_level
+        self._stop_evt = stop_evt
+
+    def run(self) -> None:
+        stream = self._pa.open(
+            format=pyaudio.paInt16,
+            channels=self._dev.channels,
+            rate=self._dev.rate,
+            input=True,
+            input_device_index=self._dev.index,
+            frames_per_buffer=FRAMES_PER_BUFFER,
+        )
+        bytes_per_window = int(self._dev.rate * self.WINDOW_SECONDS) * self._dev.channels * 2
+        buf = bytearray()
+        try:
+            while not self._stop_evt.is_set():
+                data = stream.read(FRAMES_PER_BUFFER, exception_on_overflow=False)
+                buf.extend(data)
+                if len(buf) >= bytes_per_window:
+                    audio = to_mono_16k(bytes(buf), self._dev.rate, self._dev.channels)
+                    buf.clear()
+                    if audio.size:
+                        rms = float(np.sqrt(np.mean(np.square(audio, dtype=np.float64))))
+                        self._on_level(self._speaker, rms)
+        finally:
+            stream.stop_stream()
+            stream.close()
+
+
 class Capturer(threading.Thread):
     """Cattura uno stream. Due uscite:
     - live queue (con backpressure: droppa il display se in ritardo, mai l'audio finale);

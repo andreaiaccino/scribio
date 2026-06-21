@@ -5,6 +5,7 @@ senza audio reale (BUILD-SPEC §11). Avvio: SCRIBIO_SIDECAR_MOCK=1.
 from __future__ import annotations
 
 import json
+import random
 import sys
 import threading
 import time
@@ -53,9 +54,34 @@ class MockSession:
         proto.emit_stopped(self.id)
 
 
+class MockProbe:
+    """Emette livelli finti (random, ondulati) per il VU-meter dell'onboarding."""
+
+    def __init__(self) -> None:
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def _run(self) -> None:
+        phase = 0.0
+        while not self._stop.is_set():
+            phase += 0.4
+            for speaker in ("me", "others"):
+                base = 0.18 + 0.12 * abs((phase % 2.0) - 1.0)
+                proto.emit_level(speaker, max(0.0, base + random.uniform(-0.05, 0.05)))
+            time.sleep(0.1)
+
+    def stop(self) -> None:
+        self._stop.set()
+        self._thread.join(timeout=1.0)
+
+
 def main() -> None:
     proto.emit_ready()
     session: MockSession | None = None
+    probe: MockProbe | None = None
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -71,6 +97,9 @@ def main() -> None:
                 [{"index": 1, "name": "Mock Loopback (Speakers)"}],
             )
         elif cmd == "start":
+            if probe is not None:
+                probe.stop()
+                probe = None
             if session is None:
                 session = MockSession(str(msg.get("session_id", "")))
                 session.start()
@@ -78,6 +107,16 @@ def main() -> None:
             if session is not None:
                 session.stop()
                 session = None
+        elif cmd == "probe":
+            if probe is None:
+                probe = MockProbe()
+                probe.start()
+        elif cmd == "probe_stop":
+            if probe is not None:
+                probe.stop()
+                probe = None
+    if probe is not None:
+        probe.stop()
     if session is not None:
         session.stop()
 

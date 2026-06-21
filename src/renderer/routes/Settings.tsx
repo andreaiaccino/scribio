@@ -516,7 +516,7 @@ export default function Settings() {
             )
           })}
           <div className="mono" style={{ marginTop: 'auto', padding: '10px 12px', fontSize: 10, color: 'var(--tx-12)', cursor: 'pointer' }} onClick={() => nav('/')}>
-            scribio · v0.1.0
+            scribio · v{settings?.version ?? '…'}
           </div>
         </div>
 
@@ -596,6 +596,13 @@ export default function Settings() {
                 Impossibile leggere i dispositivi: {devError}
               </div>
             )}
+
+            <button
+              onClick={() => nav('/onboarding')}
+              style={{ marginTop: 14, background: 'transparent', border: 'none', color: 'var(--lime)', fontSize: 12.5, cursor: 'pointer', padding: 0 }}
+            >
+              ↻ Rilancia configurazione guidata
+            </button>
 
             {/* Modello AI — OpenAI BYOK */}
             <SectionLabel style={{ margin: '32px 0 6px' }}>Modello AI · note enhanced</SectionLabel>

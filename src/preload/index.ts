@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AskResult,
+  AudioLevel,
   AuthUser,
   DeviceList,
   RemoteToken,
@@ -47,6 +48,16 @@ const api: ScribioApi = {
   },
   devices: {
     list: (): Promise<DeviceList> => ipcRenderer.invoke('devices:list')
+  },
+  audio: {
+    probeStart: (opts: { micIndex?: number | null; loopbackIndex?: number | null }): Promise<void> =>
+      ipcRenderer.invoke('audio:probeStart', opts),
+    probeStop: (): Promise<void> => ipcRenderer.invoke('audio:probeStop'),
+    onLevel: (cb: (l: AudioLevel) => void): Unsubscribe => {
+      const listener = (_e: unknown, l: AudioLevel): void => cb(l)
+      ipcRenderer.on('audio:level', listener)
+      return () => ipcRenderer.removeListener('audio:level', listener)
+    }
   },
   session: {
     start: (opts: StartSessionOptions): Promise<{ meetingId: string }> =>

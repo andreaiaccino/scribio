@@ -305,6 +305,59 @@ function ExportMenu({ meetingId }: { meetingId: string }) {
   )
 }
 
+function EnhanceErrorBanner({ detail, onReload }: { detail: MeetingDetail; onReload: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const retry = async () => {
+    setBusy(true)
+    try {
+      await window.scribio.meetings.enhance(detail.id)
+    } catch {
+      /* l'errore aggiornato arriva via reload */
+    } finally {
+      setBusy(false)
+      onReload()
+    }
+  }
+  return (
+    <div
+      style={{
+        marginTop: 12,
+        padding: '12px 14px',
+        background: 'rgba(255,80,80,0.08)',
+        border: '1px solid rgba(255,80,80,0.2)',
+        borderRadius: 10,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12
+      }}
+    >
+      <div style={{ flex: 1, fontSize: 13, color: '#e89', lineHeight: 1.5 }}>
+        Generazione note fallita
+        {detail.enhanceError ? <span style={{ color: '#c98' }}>: {detail.enhanceError}</span> : '.'}
+      </div>
+      <button
+        onClick={() => void retry()}
+        disabled={busy}
+        style={{
+          flexShrink: 0,
+          height: 32,
+          padding: '0 14px',
+          background: 'var(--lime)',
+          border: 'none',
+          borderRadius: 8,
+          cursor: busy ? 'default' : 'pointer',
+          fontSize: 13,
+          fontWeight: 600,
+          color: '#0a0a0a',
+          opacity: busy ? 0.6 : 1
+        }}
+      >
+        {busy ? 'Riprovo…' : 'Riprova'}
+      </button>
+    </div>
+  )
+}
+
 function MeetingMain({ detail, onReload }: { detail: MeetingDetail; onReload: () => void }) {
   const [tab, setTab] = useState<Tab>(detail.enhancedNotes ? 'enhanced' : 'mine')
   const [transcriptOpen, setTranscriptOpen] = useState(!detail.enhancedNotes)
@@ -394,6 +447,8 @@ function MeetingMain({ detail, onReload }: { detail: MeetingDetail; onReload: ()
               </span>
             </div>
           )}
+
+          {detail.status === 'error' && <EnhanceErrorBanner detail={detail} onReload={onReload} />}
 
           {/* participants */}
           {detail.participants.length > 0 && (

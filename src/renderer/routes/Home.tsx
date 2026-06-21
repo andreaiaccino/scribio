@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { AskResult } from '@shared/types'
 import SidebarLayout from '../components/SidebarLayout'
@@ -117,6 +117,13 @@ export default function Home() {
   const nav = useNavigate()
   const { meetings } = useMeetings()
   const recent = meetings.slice(0, 5)
+
+  // primo avvio: se la configurazione guidata non è stata completata, vai all'onboarding
+  useEffect(() => {
+    void window.scribio.settings.get().then((s) => {
+      if (!s.onboarded) nav('/onboarding', { replace: true })
+    })
+  }, [nav])
 
   return (
     <SidebarLayout>

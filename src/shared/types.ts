@@ -72,6 +72,8 @@ export interface MeetingDetail extends Meeting {
   enhancedNotes: EnhancedNotes | null
   segments: TranscriptSegment[]
   templateName: string | null
+  // messaggio dell'ultimo enhancement fallito (transiente, solo se status === 'error')
+  enhanceError?: string
 }
 
 export interface SearchResult {
@@ -107,6 +109,12 @@ export interface DeviceList {
   loopback: AudioDevice[]
 }
 
+// livello audio per il VU-meter dell'onboarding (probe)
+export interface AudioLevel {
+  speaker: Speaker
+  rms: number
+}
+
 // --- settings ---
 export type NoteStyle = 'concise' | 'balanced' | 'detailed'
 export interface Settings {
@@ -119,6 +127,8 @@ export interface Settings {
   speakerLabels: boolean
   mergeNotes: boolean
   noteStyle: NoteStyle
+  onboarded: boolean
+  version: string
 }
 
 // --- auth / cloud (Fase 1) ---
@@ -173,6 +183,11 @@ export interface ScribioApi {
   }
   devices: {
     list(): Promise<DeviceList>
+  }
+  audio: {
+    probeStart(opts: { micIndex?: number | null; loopbackIndex?: number | null }): Promise<void>
+    probeStop(): Promise<void>
+    onLevel(cb: (l: AudioLevel) => void): Unsubscribe
   }
   session: {
     start(opts: StartSessionOptions): Promise<{ meetingId: string }>

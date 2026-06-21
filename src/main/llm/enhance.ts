@@ -17,6 +17,13 @@ export class MissingApiKeyError extends Error {
   }
 }
 
+// Ultimo errore di enhancement per riunione (transiente, in RAM): esposto alla UI
+// via meetings:get così l'utente vede perché è fallito e può riprovare.
+const enhanceErrors = new Map<string, string>()
+export function getEnhanceError(meetingId: string): string | undefined {
+  return enhanceErrors.get(meetingId)
+}
+
 const STYLE_HINT: Record<NoteStyle, string> = {
   concise: 'Sii molto conciso: solo i bullet essenziali, frasi brevi.',
   balanced: 'Mantieni una densità bilanciata: completo ma asciutto.',
@@ -89,6 +96,7 @@ export async function enhanceMeeting(meetingId: string): Promise<void> {
   const template = detail.templateId ? getTemplate(detail.templateId) : null
   const provider = new OpenAIProvider(key, settings.openAIModel)
 
+  enhanceErrors.delete(meetingId)
   setMeetingStatus(meetingId, 'enhancing')
   try {
     const res = await provider.enhance({
@@ -103,6 +111,7 @@ export async function enhanceMeeting(meetingId: string): Promise<void> {
     })
     setMeetingStatus(meetingId, 'ready')
   } catch (e) {
+    enhanceErrors.set(meetingId, e instanceof Error ? e.message : String(e))
     setMeetingStatus(meetingId, 'error')
     throw e
   }

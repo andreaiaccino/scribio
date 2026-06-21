@@ -13,6 +13,7 @@ export interface StoredSettings {
   speakerLabels: boolean
   mergeNotes: boolean
   noteStyle: NoteStyle
+  onboarded: boolean
 }
 
 const DEFAULTS: StoredSettings = {
@@ -23,7 +24,8 @@ const DEFAULTS: StoredSettings = {
   loopbackIndex: null,
   speakerLabels: true,
   mergeNotes: true,
-  noteStyle: 'balanced'
+  noteStyle: 'balanced',
+  onboarded: false
 }
 
 function file(): string {
