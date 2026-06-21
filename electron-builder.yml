@@ -36,7 +36,9 @@ publish:
   provider: github
   owner: andreaiaccino
   repo: scribio
-  releaseType: release   # pubblica direttamente (non draft) → visibile all'auto-update
+  # default releaseType = draft: GitHub crea il tag alla pubblicazione. Si pubblica
+  # poi con `gh release edit v<ver> --draft=false` (vedi BUILD.md). releaseType:release
+  # fallirebbe con 422 se il tag non esiste già.
 
 win:
   icon: resources/icon.ico
