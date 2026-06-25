@@ -17,11 +17,10 @@ datas += d
 binaries += b
 hiddenimports += h
 
-# VAD (estensione C _webrtcvad) per la segmentazione live
-d, b, h = collect_all("webrtcvad")
-datas += d
-binaries += b
-hiddenimports += h
+# VAD per la segmentazione live. NB: niente collect_all("webrtcvad") — il contrib
+# hook fa copy_metadata('webrtcvad') e crasha (dist = 'webrtcvad-wheels'). L'estensione
+# C `_webrtcvad` è top-level e viene raccolta dall'analisi; hooks/ override il contrib.
+hiddenimports += ["webrtcvad", "_webrtcvad"]
 
 a = Analysis(
     ["main.py"],
@@ -29,7 +28,7 @@ a = Analysis(
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
-    hookspath=[],
+    hookspath=["hooks"],
     runtime_hooks=[],
     excludes=["tkinter", "matplotlib", "faster_whisper", "ctranslate2", "torch"],
     noarchive=False,
