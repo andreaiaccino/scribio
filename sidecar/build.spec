@@ -17,6 +17,12 @@ datas += d
 binaries += b
 hiddenimports += h
 
+# VAD (estensione C _webrtcvad) per la segmentazione live
+d, b, h = collect_all("webrtcvad")
+datas += d
+binaries += b
+hiddenimports += h
+
 a = Analysis(
     ["main.py"],
     pathex=[],

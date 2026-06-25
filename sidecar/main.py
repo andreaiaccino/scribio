@@ -100,7 +100,7 @@ class Session:
             except queue.Empty:
                 continue
             if capture.is_silent(audio):
-                continue  # niente parlato: non trascrivere il silenzio
+                continue  # safety net: i segmenti arrivano già a-voce dal VAD (VadSegmenter)
             try:
                 text = self._tr.transcribe(capture.to_wav_bytes(audio))
             except Exception as exc:  # robustezza: non abbattere la sessione

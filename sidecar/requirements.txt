@@ -1,4 +1,5 @@
 PyAudioWPatch==0.2.12.8
 numpy
+webrtcvad-wheels==2.0.14  # VAD vero per la segmentazione live (ruota precompilata, no toolchain)
 # STT ora via whisper.cpp (whisper-server, Vulkan) — niente faster-whisper/ctranslate2.
 # HTTP verso il server: urllib (stdlib).
